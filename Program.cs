@@ -7,6 +7,7 @@
 
     static int width = 20;
     static int height = 20;
+    static bool allowPassThroughWalls = true;
     static int x, y;
     static int foodX, foodY;
     static int score;
@@ -14,13 +15,14 @@
     static bool gameOver;
     static Directions direction;
 
-    static List<int> tailX = new List<int>();
-    static List<int> tailY = new List<int>();
-    static char[,] grid = new char[height, width];
+    static List<int> tailX;
+    static List<int> tailY;
+    static char[,] grid;
     static Random rand = new Random();
 
     static void Main()
     {
+        MainMenu();
         Initialize();
         while (!gameOver)
         {
@@ -32,10 +34,56 @@
         End();
     }
 
+    static void MainMenu()
+    {
+        Console.Clear();
+        Console.WriteLine("Main Menu:");
+        Console.WriteLine($"1. Set Game Speed (Current: {speed}ms)");
+        Console.WriteLine($"2. Set Play Size (Current: width={width} height={height})");
+        Console.WriteLine($"3. Set Pass Through Walls (Current: {allowPassThroughWalls})");
+        Console.WriteLine("4. Start Game\n");
+        char option = Console.ReadKey().KeyChar;
+        bool isValid = true;
+        switch (option)
+        {
+            case '1':
+                Console.Write("\n\nEnter new speed (in milliseconds): ");
+                isValid = int.TryParse(Console.ReadLine(), out speed);
+                goto default;
+            case '2':
+                Console.Write("\n\nEnter width: ");
+                width = int.TryParse(Console.ReadLine(), out width) ? width : 20;
+                Console.Write("Enter height: ");
+                height = int.TryParse(Console.ReadLine(), out height) ? height : 20;
+                goto default;
+            case '3':
+                Console.Write("\n\nAllow pass through walls? (y/n) ");
+                char passThroughWalls = Console.ReadKey(true).KeyChar;
+                if (passThroughWalls == 'n')
+                {
+                    allowPassThroughWalls = false;
+                }
+                goto default;
+            case '4':
+                break;
+            default:
+                if (!isValid)
+                {
+                    Console.WriteLine("\n\nInvalid option, please try again.");
+                }
+                MainMenu();
+                break;
+        }
+    }
+
     static void Initialize()
     {
+        Console.Clear();
         Console.CursorVisible = false;
+        tailX = new List<int>();
+        tailY = new List<int>();
         gameOver = false;
+        grid = new char[height, width];
         x = width / 2;
         y = height / 2;
         foodX = rand.Next(1, width - 2);
@@ -102,7 +150,7 @@
 
         // Draw the score
         Console.SetCursorPosition(width + 2, 3);
-        Console.Write("Your speed: {0:D3}ms", speed);
+        Console.Write("Your speed: {0:N3}x", (100 - speed) * 0.01 + 1);
 
         Console.SetCursorPosition(0, 0);
     }
@@ -151,19 +199,14 @@
         {
             case Directions.up:
                 y--;
-                if (y < 1) y = height - 2;
                 break;
             case Directions.down:
                 y++;
-                if (y > height - 2) y = 1;
                 break;
             case Directions.left:
-                x--;
-                if (x < 1) x = width - 2;
-                break;
+                x--;                break;
             case Directions.right:
                 x++;
-                if (x > width - 2) x = 1;
                 break;
         }
 
@@ -173,6 +216,18 @@
             if (x == tailX[i] && y == tailY[i]) gameOver = true;
         }
 
+        // Check for collision with the wall if active
+        if (!allowPassThroughWalls)
+        {
+            if (x == 0 || y == 0 || x == height || y == height) gameOver = true;
+        }
+        else
+        {
+            if (y < 1) y = height - 2;
+            else if (y > height - 2) y = 1;
+            else if (x < 1) x = width - 2;
+            else if (x > width - 2) x = 1;
+        }
         // Check for collision with the food
         if (x == foodX && y == foodY)
         {
@@ -206,5 +261,7 @@
         Console.Clear();
         Console.WriteLine("Game over!\n");
         Console.WriteLine("Your final score is: {0}\n", score);
+        Console.WriteLine("Do you want to play again? (y/n)\n");
+        if (Console.ReadKey().KeyChar == 'y') Main();
     }
 }
